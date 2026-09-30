@@ -46,7 +46,7 @@ func buildFile(t *testing.T, fd *descriptorpb.FileDescriptorProto) protoreflect.
 
 // schemaJSON builds the schema of a single-message file and returns it as
 // canonical JSON, so expectations read like the schema a client receives.
-func schemaJSON(t *testing.T, msg *descriptorpb.DescriptorProto, enums ...*descriptorpb.EnumDescriptorProto) map[string]any {
+func schemaJSON(t *testing.T, openAI bool, msg *descriptorpb.DescriptorProto, enums ...*descriptorpb.EnumDescriptorProto) map[string]any {
 	t.Helper()
 	fd := &descriptorpb.FileDescriptorProto{
 		Name:        proto.String("validate_test.proto"),
@@ -56,7 +56,7 @@ func schemaJSON(t *testing.T, msg *descriptorpb.DescriptorProto, enums ...*descr
 		EnumType:    enums,
 	}
 	md := buildFile(t, fd).Messages().Get(0)
-	raw, err := json.Marshal(messageSchema(md, false, ""))
+	raw, err := json.Marshal(messageSchema(md, openAI, ""))
 	if err != nil {
 		t.Fatalf("marshal schema: %v", err)
 	}
@@ -85,7 +85,7 @@ func requiredJSON(t *testing.T, schema map[string]any) string {
 
 func TestValidateRequiredMarksFieldsRequired(t *testing.T) {
 	str := descriptorpb.FieldDescriptorProto_TYPE_STRING
-	schema := schemaJSON(t, &descriptorpb.DescriptorProto{
+	schema := schemaJSON(t, false, &descriptorpb.DescriptorProto{
 		Name: proto.String("Req"),
 		Field: []*descriptorpb.FieldDescriptorProto{
 			ruledField("id", 1, str, validate.FieldRules_builder{Required: proto.Bool(true)}.Build()),
@@ -110,9 +110,10 @@ func TestValidateRequiredMarksFieldsRequired(t *testing.T) {
 
 func TestValidateRulesBecomeSchemaKeywords(t *testing.T) {
 	cases := []struct {
-		name  string
-		field *descriptorpb.FieldDescriptorProto
-		want  string
+		name   string
+		field  *descriptorpb.FieldDescriptorProto
+		openAI bool
+		want   string
 	}{
 		{
 			name: "uint32 inclusive range",
@@ -186,10 +187,54 @@ func TestValidateRulesBecomeSchemaKeywords(t *testing.T) {
 			}.Build())),
 			want: `{"items":{"maxLength":8,"type":"string"},"maxItems":30,"minItems":1,"type":"array","uniqueItems":true}`,
 		},
+		{
+			name: "item ignore always drops item rules",
+			field: repeatedField(ruledField("tags", 1, descriptorpb.FieldDescriptorProto_TYPE_STRING, validate.FieldRules_builder{
+				Repeated: validate.RepeatedRules_builder{
+					Items: validate.FieldRules_builder{
+						Ignore: validate.Ignore_IGNORE_ALWAYS.Enum(),
+						String: validate.StringRules_builder{MinLen: proto.Uint64(3)}.Build(),
+					}.Build(),
+				}.Build(),
+			}.Build())),
+			want: `{"items":{"type":"string"},"type":"array"}`,
+		},
+		{
+			name: "openai keeps only strict mode keywords",
+			field: ruledField("s", 1, descriptorpb.FieldDescriptorProto_TYPE_STRING, validate.FieldRules_builder{
+				String: validate.StringRules_builder{
+					Const:  proto.String("a"),
+					MinLen: proto.Uint64(1),
+					Uri:    proto.Bool(true),
+				}.Build(),
+			}.Build()),
+			openAI: true,
+			want:   `{"enum":["a"],"type":"string"}`,
+		},
+		{
+			name: "openai drops unique items and keeps item counts",
+			field: repeatedField(ruledField("tags", 1, descriptorpb.FieldDescriptorProto_TYPE_STRING, validate.FieldRules_builder{
+				Repeated: validate.RepeatedRules_builder{
+					MaxItems: proto.Uint64(30),
+					Unique:   proto.Bool(true),
+				}.Build(),
+			}.Build())),
+			openAI: true,
+			want:   `{"items":{"type":"string"},"maxItems":30,"type":"array"}`,
+		},
+		{
+			name: "openai leaves ignore if zero value fields unconstrained",
+			field: ruledField("s", 1, descriptorpb.FieldDescriptorProto_TYPE_STRING, validate.FieldRules_builder{
+				Ignore: validate.Ignore_IGNORE_IF_ZERO_VALUE.Enum(),
+				String: validate.StringRules_builder{Pattern: proto.String("^[a-f0-9]+$")}.Build(),
+			}.Build()),
+			openAI: true,
+			want:   `{"type":"string"}`,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			schema := schemaJSON(t, &descriptorpb.DescriptorProto{
+			schema := schemaJSON(t, c.openAI, &descriptorpb.DescriptorProto{
 				Name:  proto.String("Req"),
 				Field: []*descriptorpb.FieldDescriptorProto{c.field},
 			})
@@ -237,7 +282,7 @@ func TestValidateEnumRulesNarrowValues(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			schema := schemaJSON(t, &descriptorpb.DescriptorProto{
+			schema := schemaJSON(t, false, &descriptorpb.DescriptorProto{
 				Name:  proto.String("Req"),
 				Field: []*descriptorpb.FieldDescriptorProto{enumField(validate.FieldRules_builder{Enum: c.rules}.Build())},
 			}, status)

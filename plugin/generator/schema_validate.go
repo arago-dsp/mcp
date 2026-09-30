@@ -29,42 +29,74 @@ func isValidateRequired(fd protoreflect.FieldDescriptor) bool {
 	return fieldRules(fd).GetRequired()
 }
 
+// openAIUnsupportedKeywords are validation keywords OpenAI strict Structured
+// Outputs rejects; with strict mode on, one unsupported keyword fails the whole
+// request, so these are dropped rather than risked.
+var openAIUnsupportedKeywords = []string{"minLength", "maxLength", "uniqueItems", "minProperties", "maxProperties"}
+
 // applyValidateRules adds the JSON Schema keywords that buf.validate rules on
 // fd express to schema, the schema of a singular value of fd.
 //
 // Only rules JSON Schema can state exactly are mapped. CEL expressions,
 // predefined rules and exclusive-outside ranges (gt > lt) are left to the
 // server, which still enforces them.
-func applyValidateRules(fd protoreflect.FieldDescriptor, schema map[string]any) {
-	applyRules(fd, fieldRules(fd), schema)
+func applyValidateRules(fd protoreflect.FieldDescriptor, schema map[string]any, openAI bool) {
+	applyRules(fd, fieldRules(fd), schema, openAI)
 }
 
 // applyRules adds the keywords of rules to schema. fd supplies the value kind
 // and, for enums, the value names; for repeated fields it is the element kind.
-func applyRules(fd protoreflect.FieldDescriptor, rules *validate.FieldRules, schema map[string]any) {
+func applyRules(fd protoreflect.FieldDescriptor, rules *validate.FieldRules, schema map[string]any, openAI bool) {
 	if rules == nil {
 		return
 	}
 	constraints := scalarConstraints(fd, rules)
+	if openAI {
+		restrictToOpenAI(constraints)
+	}
 	if len(constraints) == 0 {
 		return
 	}
 	// IGNORE_IF_ZERO_VALUE accepts the zero value unconditionally, so a schema
 	// that only allowed constrained values would reject input the server takes.
 	if rules.GetIgnore() == validate.Ignore_IGNORE_IF_ZERO_VALUE {
-		if zero, ok := zeroValue(fd); ok {
+		zero, ok := zeroValue(fd)
+		// OpenAI schemas have no const, and a nullable type union does not nest
+		// cleanly under anyOf; leaving the field unconstrained stays correct.
+		if ok && !openAI {
 			schema["anyOf"] = []map[string]any{{"const": zero}, constraints}
-			return
 		}
+		return
 	}
 	for k, v := range constraints {
 		schema[k] = v
 	}
 }
 
+// restrictToOpenAI rewrites constraints to the OpenAI strict subset: a const
+// becomes a one-value enum and unsupported keywords are removed.
+func restrictToOpenAI(constraints map[string]any) {
+	if v, ok := constraints["const"]; ok {
+		delete(constraints, "const")
+		constraints["enum"] = []any{v}
+	}
+	for _, k := range openAIUnsupportedKeywords {
+		delete(constraints, k)
+	}
+	if format, ok := constraints["format"].(string); ok && !openAIFormats[format] {
+		delete(constraints, "format")
+	}
+}
+
+// openAIFormats are the string formats OpenAI strict Structured Outputs accepts.
+var openAIFormats = map[string]bool{
+	"date-time": true, "time": true, "date": true, "duration": true,
+	"email": true, "hostname": true, "ipv4": true, "ipv6": true, "uuid": true,
+}
+
 // applyContainerRules adds the item or pair count keywords of fd's repeated or
 // map rules to schema, the schema of the whole list or map.
-func applyContainerRules(fd protoreflect.FieldDescriptor, schema map[string]any) {
+func applyContainerRules(fd protoreflect.FieldDescriptor, schema map[string]any, openAI bool) {
 	rules := fieldRules(fd)
 	if r := rules.GetRepeated(); r != nil {
 		if r.HasMinItems() {
@@ -85,11 +117,19 @@ func applyContainerRules(fd protoreflect.FieldDescriptor, schema map[string]any)
 			schema["maxProperties"] = r.GetMaxPairs()
 		}
 	}
+	if openAI {
+		restrictToOpenAI(schema)
+	}
 }
 
-// itemRules returns the rules that apply to each element of a repeated field.
+// itemRules returns the rules that apply to each element of a repeated field,
+// or nil when the element rules are switched off with IGNORE_ALWAYS.
 func itemRules(fd protoreflect.FieldDescriptor) *validate.FieldRules {
-	return fieldRules(fd).GetRepeated().GetItems()
+	items := fieldRules(fd).GetRepeated().GetItems()
+	if items.GetIgnore() == validate.Ignore_IGNORE_ALWAYS {
+		return nil
+	}
+	return items
 }
 
 func scalarConstraints(fd protoreflect.FieldDescriptor, rules *validate.FieldRules) map[string]any {

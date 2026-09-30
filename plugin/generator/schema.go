@@ -193,7 +193,7 @@ func fieldSchemaPath(fd protoreflect.FieldDescriptor, openAI bool, path map[prot
 	if fd.IsMap() {
 		schema := mapSchemaPath(fd, openAI, path)
 		if !openAI {
-			applyContainerRules(fd, schema)
+			applyContainerRules(fd, schema, false)
 		}
 		return schema
 	}
@@ -207,14 +207,14 @@ func fieldSchemaPath(fd protoreflect.FieldDescriptor, openAI bool, path map[prot
 		schema = scalarSchema(fd, openAI)
 	}
 	if !fd.IsList() {
-		applyValidateRules(fd, schema)
+		applyValidateRules(fd, schema, openAI)
 		applyMCPFieldOptions(fd, schema, "")
 		return schema
 	}
-	applyRules(fd, itemRules(fd), schema)
+	applyRules(fd, itemRules(fd), schema, openAI)
 	applyMCPFieldOptions(fd, schema, "")
 	array := map[string]any{"type": "array", "items": schema}
-	applyContainerRules(fd, array)
+	applyContainerRules(fd, array, openAI)
 	return array
 }
 

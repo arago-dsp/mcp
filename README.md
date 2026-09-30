@@ -507,6 +507,7 @@ The tool's `inputSchema` is derived from the protobuf request message:
   - repeated: `min_items`, `max_items`, `unique`, and `items` rules on each element; map: `min_pairs`, `max_pairs` → `minProperties`, `maxProperties`
   - `IGNORE_IF_ZERO_VALUE` keeps the zero value valid through `anyOf`; `IGNORE_ALWAYS` drops the field's rules
   - CEL expressions, predefined rules, 64-bit integer bounds (JSON strings) and exclusive-outside ranges (`gt` > `lt`) are left to server-side validation
+  - OpenAI-compatible schemas keep only the strict Structured Outputs subset: `const` becomes a one-value `enum`; `minLength`, `maxLength`, `uniqueItems` and unsupported formats are dropped; `IGNORE_IF_ZERO_VALUE` fields stay unconstrained
 - Well-known types (Timestamp, Duration, FieldMask, Struct, Any, wrappers) → appropriate JSON Schema
 - Protobuf `oneof` → JSON Schema `oneOf`/`anyOf`
 - Enums → JSON Schema `enum` with string values; `(mcp.v1.enum)` / `(mcp.v1.enum_value)` → `description` and `enumDescriptions`
