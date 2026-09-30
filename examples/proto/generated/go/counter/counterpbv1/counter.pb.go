@@ -8,6 +8,7 @@ package counterpbv1
 
 import (
 	_ "buf.build/gen/go/the-protobuf-project/mcp/protocolbuffers/go/mcp/protobuf"
+	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -22,29 +23,31 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Request to count from 0 up to a target number.
-type CountRequest struct {
+// Request for CounterService.StreamCount: count from 0 up to a target number.
+type StreamCountRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The number to count up to (e.g. 10).
-	To            int32 `protobuf:"varint,1,opt,name=to,proto3" json:"to,omitempty"`
+	// The number to count up to (e.g. 10). Named `target` rather than `to`
+	// because AIP-140 reserves prepositions for relationships between
+	// resources, not for the value a field carries.
+	Target        int32 `protobuf:"varint,1,opt,name=target,proto3" json:"target,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CountRequest) Reset() {
-	*x = CountRequest{}
+func (x *StreamCountRequest) Reset() {
+	*x = StreamCountRequest{}
 	mi := &file_counter_v1_counter_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CountRequest) String() string {
+func (x *StreamCountRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CountRequest) ProtoMessage() {}
+func (*StreamCountRequest) ProtoMessage() {}
 
-func (x *CountRequest) ProtoReflect() protoreflect.Message {
+func (x *StreamCountRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_counter_v1_counter_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -56,14 +59,14 @@ func (x *CountRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CountRequest.ProtoReflect.Descriptor instead.
-func (*CountRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use StreamCountRequest.ProtoReflect.Descriptor instead.
+func (*StreamCountRequest) Descriptor() ([]byte, []int) {
 	return file_counter_v1_counter_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *CountRequest) GetTo() int32 {
+func (x *StreamCountRequest) GetTarget() int32 {
 	if x != nil {
-		return x.To
+		return x.Target
 	}
 	return 0
 }
@@ -119,10 +122,10 @@ var File_counter_v1_counter_proto protoreflect.FileDescriptor
 const file_counter_v1_counter_proto_rawDesc = "" +
 	"\n" +
 	"\x18counter/v1/counter.proto\x12\n" +
-	"counter.v1\x1a\x1emcp/protobuf/annotations.proto\x1a\x18mcp/protobuf/field.proto\"q\n" +
-	"\fCountRequest\x12a\n" +
-	"\x02to\x18\x01 \x01(\x05BQ\xe2\xf3\x18M\n" +
-	"DCount from 0 up to this number. Progress updates are sent each step.\x12\x015\x12\x0210R\x02to\"%\n" +
+	"counter.v1\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1emcp/protobuf/annotations.proto\x1a\x18mcp/protobuf/field.proto\"\x82\x01\n" +
+	"\x12StreamCountRequest\x12l\n" +
+	"\x06target\x18\x01 \x01(\x05BT\xe0A\x02\xe2\xf3\x18M\n" +
+	"DCount from 0 up to this number. Progress updates are sent each step.\x12\x015\x12\x0210R\x06target\"%\n" +
 	"\rCountResponse\x12\x14\n" +
 	"\x05count\x18\x01 \x01(\x05R\x05countB\x81\x01\n" +
 	"\x0ecom.counter.v1B\fCounterProtoP\x01Z_github.com/the-protobuf-project/mcp/examples/proto/generated/go/counter/counterpbv1;counterpbv1b\x06proto3"
@@ -141,8 +144,8 @@ func file_counter_v1_counter_proto_rawDescGZIP() []byte {
 
 var file_counter_v1_counter_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_counter_v1_counter_proto_goTypes = []any{
-	(*CountRequest)(nil),  // 0: counter.v1.CountRequest
-	(*CountResponse)(nil), // 1: counter.v1.CountResponse
+	(*StreamCountRequest)(nil), // 0: counter.v1.StreamCountRequest
+	(*CountResponse)(nil),      // 1: counter.v1.CountResponse
 }
 var file_counter_v1_counter_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type

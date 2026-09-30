@@ -43,8 +43,8 @@ const (
 //	{
 //	  "method": "tools/call",
 //	  "params": {
-//	    "name": "counter_service-count_v1",
-//	    "arguments": { "to": 5 },
+//	    "name": "counter_service-stream_count_v1",
+//	    "arguments": { "target": 5 },
 //	    "_meta": { "progressToken": "abc123" }
 //	  }
 //	}

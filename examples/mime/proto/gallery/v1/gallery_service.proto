@@ -3,9 +3,14 @@ syntax = "proto3";
 package gallery.v1;
 
 import "gallery/v1/gallery.proto";
+import "google/api/annotations.proto";
+import "google/api/client.proto";
 import "mcp/v1/annotations.proto";
 
 option go_package = "github.com/the-protobuf-project/mcp/examples/mime/gen/go/gallery/v1;galleryv1";
+option java_multiple_files = true;
+option java_outer_classname = "GalleryServiceProto";
+option java_package = "com.gallery.v1";
 
 // GalleryService publishes a small set of assets, each under a different IANA
 // media type, so an MCP client has something concrete to render for every
@@ -23,12 +28,19 @@ service GalleryService {
       description: "A gallery of assets served across the common MCP media types"
       website_url: "https://example.com/gallery"
       icons: [
-        {src: "https://example.com/icons/gallery.svg" mime_type: "image/svg+xml" sizes: ["any"]}
+        {
+          src: "https://example.com/icons/gallery.svg"
+          mime_type: "image/svg+xml"
+          sizes: ["any"]
+        }
       ]
     }
     // The gallery's listings are identical for every caller and change only
     // when the server is redeployed, so they are safe to share and cache.
-    cache: {ttl: {seconds: 300} scope: MCP_CACHE_SCOPE_PUBLIC}
+    cache: {
+      ttl: {seconds: 300}
+      scope: MCP_CACHE_SCOPE_PUBLIC
+    }
     resources: [
       // Markdown — rendered as prose by clients that support it.
       {
@@ -39,7 +51,10 @@ service GalleryService {
         mime_type: "text/markdown"
         size: 596
         annotations: {
-          audience: [MCP_ROLE_USER, MCP_ROLE_ASSISTANT]
+          audience: [
+            MCP_ROLE_USER,
+            MCP_ROLE_ASSISTANT
+          ]
           priority: 1.0
           last_modified: "2026-08-17T09:00:00Z"
         }
@@ -113,7 +128,10 @@ service GalleryService {
           {
             src: "https://example.com/icons/image.png"
             mime_type: "image/png"
-            sizes: ["48x48", "96x96"]
+            sizes: [
+              "48x48",
+              "96x96"
+            ]
           }
         ]
       },
@@ -140,12 +158,17 @@ service GalleryService {
 
   // Lists the assets in the gallery, optionally filtered by media type.
   rpc ListAssets(ListAssetsRequest) returns (ListAssetsResponse) {
+    option (google.api.http) = {get: "/v1/assets"};
     option (mcp.v1.tool) = {
       id: "list_assets"
       title: "List assets"
       description: "List gallery assets, optionally filtered by IANA media type."
       icons: [
-        {src: "https://example.com/icons/list.svg" mime_type: "image/svg+xml" theme: MCP_ICON_THEME_LIGHT}
+        {
+          src: "https://example.com/icons/list.svg"
+          mime_type: "image/svg+xml"
+          theme: MCP_ICON_THEME_LIGHT
+        }
       ]
       // Listing reads the gallery and nothing else, so a client may call it
       // without asking the user first.
@@ -163,7 +186,12 @@ service GalleryService {
   }
 
   // Fetches one asset's content along with the media type describing it.
-  rpc GetAsset(GetAssetRequest) returns (GetAssetResponse) {
+  //
+  // Returns the Asset itself rather than a wrapper: AIP-131 requires a Get to
+  // return the resource, so the content fields live on Asset.
+  rpc GetAsset(GetAssetRequest) returns (Asset) {
+    option (google.api.http) = {get: "/v1/{name=assets/*}"};
+    option (google.api.method_signature) = "name";
     option (mcp.v1.tool) = {
       id: "get_asset"
       description: "Fetch a single asset's content and its media type."

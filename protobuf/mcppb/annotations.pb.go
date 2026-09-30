@@ -118,7 +118,7 @@ var File_mcp_v1_annotations_proto protoreflect.FileDescriptor
 
 const file_mcp_v1_annotations_proto_rawDesc = "" +
 	"\n" +
-	"\x18mcp/v1/annotations.proto\x12\x06mcp.v1\x1a google/protobuf/descriptor.proto\x1a\x1cmcp/v1/service_options.proto\x1a\x13mcp/v1/prompt.proto\x1a\x18mcp/v1/elicitation.proto\x1a\x12mcp/v1/field.proto\x1a\x11mcp/v1/enum.proto:Y\n" +
+	"\x18mcp/v1/annotations.proto\x12\x06mcp.v1\x1a google/protobuf/descriptor.proto\x1a\x18mcp/v1/elicitation.proto\x1a\x11mcp/v1/enum.proto\x1a\x12mcp/v1/field.proto\x1a\x13mcp/v1/prompt.proto\x1a\x1cmcp/v1/service_options.proto:Y\n" +
 	"\aservice\x12\x1f.google.protobuf.ServiceOptions\x18\xb8\x8e\x03 \x01(\v2\x19.mcp.v1.MCPServiceOptionsR\aservice\x88\x01\x01:O\n" +
 	"\x04tool\x12\x1e.google.protobuf.MethodOptions\x18\xb9\x8e\x03 \x01(\v2\x16.mcp.v1.MCPToolOptionsR\x04tool\x88\x01\x01:N\n" +
 	"\x06prompt\x12\x1e.google.protobuf.MethodOptions\x18\xba\x8e\x03 \x01(\v2\x11.mcp.v1.MCPPromptR\x06prompt\x88\x01\x01:]\n" +
@@ -171,11 +171,11 @@ func file_mcp_v1_annotations_proto_init() {
 	if File_mcp_v1_annotations_proto != nil {
 		return
 	}
-	file_mcp_v1_service_options_proto_init()
-	file_mcp_v1_prompt_proto_init()
 	file_mcp_v1_elicitation_proto_init()
-	file_mcp_v1_field_proto_init()
 	file_mcp_v1_enum_proto_init()
+	file_mcp_v1_field_proto_init()
+	file_mcp_v1_prompt_proto_init()
+	file_mcp_v1_service_options_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

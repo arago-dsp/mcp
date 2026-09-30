@@ -8,6 +8,7 @@ package galleryv1
 
 import (
 	_ "github.com/the-protobuf-project/mcp/protobuf/mcppb"
+	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -25,19 +26,29 @@ const (
 // Asset is a single item in the gallery. Every asset carries an IANA media type
 // so an MCP client knows how to render it: Markdown as prose, PNG as an image,
 // PDF as a download, and so on.
+//
+// The asset carries its own content, so GetAsset can return the resource itself
+// rather than a wrapper, as AIP-131 requires.
 type Asset struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Stable identifier, e.g. "overview".
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Relative resource name, e.g. "assets/overview". The last segment is the
+	// asset's stable identifier; AIP-148 keeps it there rather than duplicating
+	// it in an `id` field.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Human-readable name shown in the client UI.
-	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Title string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
 	// The asset's IANA media type, e.g. "text/markdown" or "image/png". This is
 	// the same value carried by the resource declarations on GalleryService.
-	MimeType string `protobuf:"bytes,3,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
+	MimeType string `protobuf:"bytes,4,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
 	// Canonical URI the asset is served from.
-	Uri string `protobuf:"bytes,4,opt,name=uri,proto3" json:"uri,omitempty"`
+	Uri string `protobuf:"bytes,5,opt,name=uri,proto3" json:"uri,omitempty"`
 	// Size of the raw content in bytes.
-	SizeBytes     int64 `protobuf:"varint,5,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	SizeBytes int64 `protobuf:"varint,6,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	// Text content, set when the media type is textual (Markdown, HTML, JSON, CSV).
+	Text string `protobuf:"bytes,7,opt,name=text,proto3" json:"text,omitempty"`
+	// Raw bytes, set when the media type is binary (PNG, PDF). Serialised as
+	// base64 in JSON, which is why the schema reports it with the "byte" format.
+	Data          []byte `protobuf:"bytes,8,opt,name=data,proto3" json:"data,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -72,9 +83,9 @@ func (*Asset) Descriptor() ([]byte, []int) {
 	return file_gallery_v1_gallery_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Asset) GetId() string {
+func (x *Asset) GetName() string {
 	if x != nil {
-		return x.Id
+		return x.Name
 	}
 	return ""
 }
@@ -107,10 +118,31 @@ func (x *Asset) GetSizeBytes() int64 {
 	return 0
 }
 
+func (x *Asset) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *Asset) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+// Request message for GalleryService.ListAssets.
 type ListAssetsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Restrict the listing to one media type, e.g. "image/png". Empty returns all.
-	MimeType      string `protobuf:"bytes,1,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
+	// The maximum number of assets to return. The server may return fewer.
+	PageSize int32 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// A page token from a previous ListAssets call, to fetch the next page.
+	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Restricts the listing, e.g. `mime_type = "image/png"`. Empty returns every
+	// asset. AIP-132 reserves a single `filter` string for this, which is why the
+	// media type is not its own request field.
+	Filter        string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -145,16 +177,35 @@ func (*ListAssetsRequest) Descriptor() ([]byte, []int) {
 	return file_gallery_v1_gallery_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ListAssetsRequest) GetMimeType() string {
+func (x *ListAssetsRequest) GetPageSize() int32 {
 	if x != nil {
-		return x.MimeType
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListAssetsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
 	}
 	return ""
 }
 
+func (x *ListAssetsRequest) GetFilter() string {
+	if x != nil {
+		return x.Filter
+	}
+	return ""
+}
+
+// Response message for GalleryService.ListAssets.
 type ListAssetsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Assets        []*Asset               `protobuf:"bytes,1,rep,name=assets,proto3" json:"assets,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The assets in this page of results.
+	Assets []*Asset `protobuf:"bytes,1,rep,name=assets,proto3" json:"assets,omitempty"`
+	// Token to pass as `page_token` to retrieve the next page. Empty when this is
+	// the last page.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -196,10 +247,18 @@ func (x *ListAssetsResponse) GetAssets() []*Asset {
 	return nil
 }
 
+func (x *ListAssetsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+// Request message for GalleryService.GetAsset.
 type GetAssetRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Identifier of the asset to fetch.
-	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Relative resource name of the asset to fetch, e.g. "assets/overview".
+	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -234,75 +293,11 @@ func (*GetAssetRequest) Descriptor() ([]byte, []int) {
 	return file_gallery_v1_gallery_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *GetAssetRequest) GetId() string {
+func (x *GetAssetRequest) GetName() string {
 	if x != nil {
-		return x.Id
+		return x.Name
 	}
 	return ""
-}
-
-type GetAssetResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The asset's metadata, including its media type.
-	Asset *Asset `protobuf:"bytes,1,opt,name=asset,proto3" json:"asset,omitempty"`
-	// Text content, set when the media type is textual (Markdown, HTML, JSON, CSV).
-	Text string `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
-	// Raw bytes, set when the media type is binary (PNG, PDF). Serialised as
-	// base64 in JSON, which is why the schema reports it with the "byte" format.
-	Data          []byte `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetAssetResponse) Reset() {
-	*x = GetAssetResponse{}
-	mi := &file_gallery_v1_gallery_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetAssetResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetAssetResponse) ProtoMessage() {}
-
-func (x *GetAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gallery_v1_gallery_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetAssetResponse.ProtoReflect.Descriptor instead.
-func (*GetAssetResponse) Descriptor() ([]byte, []int) {
-	return file_gallery_v1_gallery_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *GetAssetResponse) GetAsset() *Asset {
-	if x != nil {
-		return x.Asset
-	}
-	return nil
-}
-
-func (x *GetAssetResponse) GetText() string {
-	if x != nil {
-		return x.Text
-	}
-	return ""
-}
-
-func (x *GetAssetResponse) GetData() []byte {
-	if x != nil {
-		return x.Data
-	}
-	return nil
 }
 
 var File_gallery_v1_gallery_proto protoreflect.FileDescriptor
@@ -310,31 +305,35 @@ var File_gallery_v1_gallery_proto protoreflect.FileDescriptor
 const file_gallery_v1_gallery_proto_rawDesc = "" +
 	"\n" +
 	"\x18gallery/v1/gallery.proto\x12\n" +
-	"gallery.v1\x1a\x18mcp/v1/annotations.proto\"\xa8\x02\n" +
-	"\x05Asset\x12?\n" +
-	"\x02id\x18\x01 \x01(\tB/\xe2\xf3\x18+\n" +
-	")Identifier of the asset, e.g. \"overview\".R\x02id\x12\x14\n" +
-	"\x05title\x18\x02 \x01(\tR\x05title\x12p\n" +
-	"\tmime_type\x18\x03 \x01(\tBS\xe2\xf3\x18O\n" +
-	"3IANA media type of the asset, e.g. \"text/markdown\".\x12\rtext/markdown\x12\timage/pngR\bmimeType\x127\n" +
-	"\x03uri\x18\x04 \x01(\tB%\xe2\xf3\x18!\n" +
-	"\x1dURI the asset is served from. \x04R\x03uri\x12\x1d\n" +
+	"gallery.v1\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a\x18mcp/v1/annotations.proto\"\xe3\x03\n" +
+	"\x05Asset\x12P\n" +
+	"\x04name\x18\x01 \x01(\tB<\xe0A\b\xe2\xf3\x185\n" +
+	"3Resource name of the asset, e.g. \"assets/overview\".R\x04name\x12\x19\n" +
+	"\x05title\x18\x03 \x01(\tB\x03\xe0A\x03R\x05title\x12s\n" +
+	"\tmime_type\x18\x04 \x01(\tBV\xe0A\x03\xe2\xf3\x18O\n" +
+	"3IANA media type of the asset, e.g. \"text/markdown\".\x12\rtext/markdown\x12\timage/pngR\bmimeType\x12:\n" +
+	"\x03uri\x18\x05 \x01(\tB(\xe0A\x03\xe2\xf3\x18!\n" +
+	"\x1dURI the asset is served from. \x04R\x03uri\x12\"\n" +
 	"\n" +
-	"size_bytes\x18\x05 \x01(\x03R\tsizeBytes\"\x9c\x01\n" +
-	"\x11ListAssetsRequest\x12\x86\x01\n" +
-	"\tmime_type\x18\x01 \x01(\tBi\xe2\xf3\x18e\n" +
-	"HOnly return assets with this IANA media type. Empty returns every asset.\x12\rtext/markdown2\n" +
-	"Media typeR\bmimeType\"?\n" +
+	"size_bytes\x18\x06 \x01(\x03B\x03\xe0A\x03R\tsizeBytes\x12\x17\n" +
+	"\x04text\x18\a \x01(\tB\x03\xe0A\x03R\x04text\x12@\n" +
+	"\x04data\x18\b \x01(\fB,\xe0A\x03\xe2\xf3\x18%\n" +
+	"!Raw bytes for binary media types. \aR\x04data:=\xeaA:\n" +
+	"\x19gallery.example.com/Asset\x12\x0eassets/{asset}*\x06assets2\x05asset\"\x85\x02\n" +
+	"\x11ListAssetsRequest\x12 \n" +
+	"\tpage_size\x18\x01 \x01(\x05B\x03\xe0A\x01R\bpageSize\x12\"\n" +
+	"\n" +
+	"page_token\x18\x02 \x01(\tB\x03\xe0A\x01R\tpageToken\x12\xa9\x01\n" +
+	"\x06filter\x18\x03 \x01(\tB\x90\x01\xe0A\x01\xe2\xf3\x18\x88\x01\n" +
+	"aOnly return assets matching this filter, e.g. mime_type = \"image/png\". Empty returns every asset.\x12\x1bmime_type = \"text/markdown\"2\x06FilterR\x06filter\"g\n" +
 	"\x12ListAssetsResponse\x12)\n" +
-	"\x06assets\x18\x01 \x03(\v2\x11.gallery.v1.AssetR\x06assets\"a\n" +
-	"\x0fGetAssetRequest\x12N\n" +
-	"\x02id\x18\x01 \x01(\tB>\xe2\xf3\x18:\n" +
-	".Identifier of the asset to fetch, e.g. \"logo\".\x12\boverviewR\x02id\"\x8e\x01\n" +
-	"\x10GetAssetResponse\x12'\n" +
-	"\x05asset\x18\x01 \x01(\v2\x11.gallery.v1.AssetR\x05asset\x12\x12\n" +
-	"\x04text\x18\x02 \x01(\tR\x04text\x12=\n" +
-	"\x04data\x18\x03 \x01(\fB)\xe2\xf3\x18%\n" +
-	"!Raw bytes for binary media types. \aR\x04dataBOZMgithub.com/the-protobuf-project/mcp/examples/mime/gen/go/gallery/v1;galleryv1b\x06proto3"
+	"\x06assets\x18\x01 \x03(\v2\x11.gallery.v1.AssetR\x06assets\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x9c\x01\n" +
+	"\x0fGetAssetRequest\x12\x88\x01\n" +
+	"\x04name\x18\x01 \x01(\tBt\xe0A\x02\xfaA\x1b\n" +
+	"\x19gallery.example.com/Asset\xe2\xf3\x18O\n" +
+	"<Resource name of the asset to fetch, e.g. \"assets/overview\".\x12\x0fassets/overviewR\x04nameBo\n" +
+	"\x0ecom.gallery.v1B\fGalleryProtoP\x01ZMgithub.com/the-protobuf-project/mcp/examples/mime/gen/go/gallery/v1;galleryv1b\x06proto3"
 
 var (
 	file_gallery_v1_gallery_proto_rawDescOnce sync.Once
@@ -348,22 +347,20 @@ func file_gallery_v1_gallery_proto_rawDescGZIP() []byte {
 	return file_gallery_v1_gallery_proto_rawDescData
 }
 
-var file_gallery_v1_gallery_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_gallery_v1_gallery_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_gallery_v1_gallery_proto_goTypes = []any{
 	(*Asset)(nil),              // 0: gallery.v1.Asset
 	(*ListAssetsRequest)(nil),  // 1: gallery.v1.ListAssetsRequest
 	(*ListAssetsResponse)(nil), // 2: gallery.v1.ListAssetsResponse
 	(*GetAssetRequest)(nil),    // 3: gallery.v1.GetAssetRequest
-	(*GetAssetResponse)(nil),   // 4: gallery.v1.GetAssetResponse
 }
 var file_gallery_v1_gallery_proto_depIdxs = []int32{
 	0, // 0: gallery.v1.ListAssetsResponse.assets:type_name -> gallery.v1.Asset
-	0, // 1: gallery.v1.GetAssetResponse.asset:type_name -> gallery.v1.Asset
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_gallery_v1_gallery_proto_init() }
@@ -377,7 +374,7 @@ func file_gallery_v1_gallery_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gallery_v1_gallery_proto_rawDesc), len(file_gallery_v1_gallery_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

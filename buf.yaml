@@ -10,6 +10,11 @@ version: v2
 modules:
   - path: protobuf
   - path: examples/mime/proto
+# examples/mime/proto carries the google.api.* annotations that AIP compliance
+# is expressed with (field_behavior, http, method_signature), so googleapis has
+# to resolve here too. protobuf/ itself does not import them.
+deps:
+  - buf.build/googleapis/googleapis
 lint:
   use:
     - STANDARD

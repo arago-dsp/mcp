@@ -38,7 +38,10 @@ type GalleryServiceClient interface {
 	// Lists the assets in the gallery, optionally filtered by media type.
 	ListAssets(ctx context.Context, in *ListAssetsRequest, opts ...grpc.CallOption) (*ListAssetsResponse, error)
 	// Fetches one asset's content along with the media type describing it.
-	GetAsset(ctx context.Context, in *GetAssetRequest, opts ...grpc.CallOption) (*GetAssetResponse, error)
+	//
+	// Returns the Asset itself rather than a wrapper: AIP-131 requires a Get to
+	// return the resource, so the content fields live on Asset.
+	GetAsset(ctx context.Context, in *GetAssetRequest, opts ...grpc.CallOption) (*Asset, error)
 }
 
 type galleryServiceClient struct {
@@ -59,9 +62,9 @@ func (c *galleryServiceClient) ListAssets(ctx context.Context, in *ListAssetsReq
 	return out, nil
 }
 
-func (c *galleryServiceClient) GetAsset(ctx context.Context, in *GetAssetRequest, opts ...grpc.CallOption) (*GetAssetResponse, error) {
+func (c *galleryServiceClient) GetAsset(ctx context.Context, in *GetAssetRequest, opts ...grpc.CallOption) (*Asset, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetAssetResponse)
+	out := new(Asset)
 	err := c.cc.Invoke(ctx, GalleryService_GetAsset_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -84,7 +87,10 @@ type GalleryServiceServer interface {
 	// Lists the assets in the gallery, optionally filtered by media type.
 	ListAssets(context.Context, *ListAssetsRequest) (*ListAssetsResponse, error)
 	// Fetches one asset's content along with the media type describing it.
-	GetAsset(context.Context, *GetAssetRequest) (*GetAssetResponse, error)
+	//
+	// Returns the Asset itself rather than a wrapper: AIP-131 requires a Get to
+	// return the resource, so the content fields live on Asset.
+	GetAsset(context.Context, *GetAssetRequest) (*Asset, error)
 	mustEmbedUnimplementedGalleryServiceServer()
 }
 
@@ -98,7 +104,7 @@ type UnimplementedGalleryServiceServer struct{}
 func (UnimplementedGalleryServiceServer) ListAssets(context.Context, *ListAssetsRequest) (*ListAssetsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListAssets not implemented")
 }
-func (UnimplementedGalleryServiceServer) GetAsset(context.Context, *GetAssetRequest) (*GetAssetResponse, error) {
+func (UnimplementedGalleryServiceServer) GetAsset(context.Context, *GetAssetRequest) (*Asset, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAsset not implemented")
 }
 func (UnimplementedGalleryServiceServer) mustEmbedUnimplementedGalleryServiceServer() {}

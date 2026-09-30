@@ -2,14 +2,15 @@ syntax = "proto3";
 
 package counter.v1;
 
+import "counter/v1/counter.proto";
+import "google/api/annotations.proto";
+import "mcp/protobuf/annotations.proto";
+import "mcp/protobuf/progress.proto";
+
 option go_package = "github.com/the-protobuf-project/mcp/examples/proto/generated/go/counter/counterpbv1;counterpbv1";
 option java_multiple_files = true;
 option java_outer_classname = "CounterServiceProto";
 option java_package = "com.counter.v1";
-
-import "mcp/protobuf/annotations.proto";
-import "mcp/protobuf/progress.proto";
-import "counter/v1/counter.proto";
 
 // Counter service demonstrates MCP progress via server streaming.
 service CounterService {
@@ -22,7 +23,14 @@ service CounterService {
   };
 
   // Counts from 0 up to the requested number, streaming progress updates.
-  rpc Count(CountRequest) returns (stream CountStreamChunk) {
+  //
+  // Named with a verb and a noun per AIP-136: bare `Count` reads as a verb
+  // alone, which leaves the resource being acted on implicit.
+  rpc StreamCount(StreamCountRequest) returns (stream StreamCountResponse) {
+    option (google.api.http) = {
+      post: "/v1/counter:streamCount"
+      body: "*"
+    };
     option (mcp.tool) = {
       description: "Counts from 0 up to the given number. Sends progress updates as it counts. Use with progressToken in _meta for progress notifications."
       progress: true
@@ -30,10 +38,21 @@ service CounterService {
   }
 }
 
-// Stream chunk sent during Count: either progress or the final result.
-message CountStreamChunk {
+// Stream chunk sent during StreamCount: either progress or the final result.
+message StreamCountResponse {
+  // Exactly one of the two is set per message on the stream.
   oneof payload {
+    // Incremental progress, forwarded to the client as an MCP progress
+    // notification.
+    //
+    // (-- api-linter: core::0215::foreign-type-reference=disabled
+    //     aip.dev/not-precedent: Carrying mcp.MCPProgress across the package
+    //     boundary is the point of this example — the MCP runtime matches on
+    //     this exact type to turn a stream message into a progress
+    //     notification, so a counter.v1-local copy would not be recognised. --)
     mcp.MCPProgress progress = 1;
+
+    // The final count, sent once as the last message on the stream.
     CountResponse result = 2;
   }
 }

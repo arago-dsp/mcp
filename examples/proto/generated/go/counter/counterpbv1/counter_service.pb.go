@@ -8,6 +8,7 @@ package counterpbv1
 
 import (
 	protobuf "buf.build/gen/go/the-protobuf-project/mcp/protocolbuffers/go/mcp/protobuf"
+	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -22,32 +23,34 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Stream chunk sent during Count: either progress or the final result.
-type CountStreamChunk struct {
+// Stream chunk sent during StreamCount: either progress or the final result.
+type StreamCountResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
+	// Exactly one of the two is set per message on the stream.
+	//
 	// Types that are valid to be assigned to Payload:
 	//
-	//	*CountStreamChunk_Progress
-	//	*CountStreamChunk_Result
-	Payload       isCountStreamChunk_Payload `protobuf_oneof:"payload"`
+	//	*StreamCountResponse_Progress
+	//	*StreamCountResponse_Result
+	Payload       isStreamCountResponse_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CountStreamChunk) Reset() {
-	*x = CountStreamChunk{}
+func (x *StreamCountResponse) Reset() {
+	*x = StreamCountResponse{}
 	mi := &file_counter_v1_counter_service_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CountStreamChunk) String() string {
+func (x *StreamCountResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CountStreamChunk) ProtoMessage() {}
+func (*StreamCountResponse) ProtoMessage() {}
 
-func (x *CountStreamChunk) ProtoReflect() protoreflect.Message {
+func (x *StreamCountResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_counter_v1_counter_service_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -59,64 +62,74 @@ func (x *CountStreamChunk) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CountStreamChunk.ProtoReflect.Descriptor instead.
-func (*CountStreamChunk) Descriptor() ([]byte, []int) {
+// Deprecated: Use StreamCountResponse.ProtoReflect.Descriptor instead.
+func (*StreamCountResponse) Descriptor() ([]byte, []int) {
 	return file_counter_v1_counter_service_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *CountStreamChunk) GetPayload() isCountStreamChunk_Payload {
+func (x *StreamCountResponse) GetPayload() isStreamCountResponse_Payload {
 	if x != nil {
 		return x.Payload
 	}
 	return nil
 }
 
-func (x *CountStreamChunk) GetProgress() *protobuf.MCPProgress {
+func (x *StreamCountResponse) GetProgress() *protobuf.MCPProgress {
 	if x != nil {
-		if x, ok := x.Payload.(*CountStreamChunk_Progress); ok {
+		if x, ok := x.Payload.(*StreamCountResponse_Progress); ok {
 			return x.Progress
 		}
 	}
 	return nil
 }
 
-func (x *CountStreamChunk) GetResult() *CountResponse {
+func (x *StreamCountResponse) GetResult() *CountResponse {
 	if x != nil {
-		if x, ok := x.Payload.(*CountStreamChunk_Result); ok {
+		if x, ok := x.Payload.(*StreamCountResponse_Result); ok {
 			return x.Result
 		}
 	}
 	return nil
 }
 
-type isCountStreamChunk_Payload interface {
-	isCountStreamChunk_Payload()
+type isStreamCountResponse_Payload interface {
+	isStreamCountResponse_Payload()
 }
 
-type CountStreamChunk_Progress struct {
+type StreamCountResponse_Progress struct {
+	// Incremental progress, forwarded to the client as an MCP progress
+	// notification.
+	//
+	// (-- api-linter: core::0215::foreign-type-reference=disabled
+	//
+	//	aip.dev/not-precedent: Carrying mcp.MCPProgress across the package
+	//	boundary is the point of this example — the MCP runtime matches on
+	//	this exact type to turn a stream message into a progress
+	//	notification, so a counter.v1-local copy would not be recognised. --)
 	Progress *protobuf.MCPProgress `protobuf:"bytes,1,opt,name=progress,proto3,oneof"`
 }
 
-type CountStreamChunk_Result struct {
+type StreamCountResponse_Result struct {
+	// The final count, sent once as the last message on the stream.
 	Result *CountResponse `protobuf:"bytes,2,opt,name=result,proto3,oneof"`
 }
 
-func (*CountStreamChunk_Progress) isCountStreamChunk_Payload() {}
+func (*StreamCountResponse_Progress) isStreamCountResponse_Payload() {}
 
-func (*CountStreamChunk_Result) isCountStreamChunk_Payload() {}
+func (*StreamCountResponse_Result) isStreamCountResponse_Payload() {}
 
 var File_counter_v1_counter_service_proto protoreflect.FileDescriptor
 
 const file_counter_v1_counter_service_proto_rawDesc = "" +
 	"\n" +
 	" counter/v1/counter_service.proto\x12\n" +
-	"counter.v1\x1a\x1emcp/protobuf/annotations.proto\x1a\x1bmcp/protobuf/progress.proto\x1a\x18counter/v1/counter.proto\"\x82\x01\n" +
-	"\x10CountStreamChunk\x12.\n" +
+	"counter.v1\x1a\x18counter/v1/counter.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1emcp/protobuf/annotations.proto\x1a\x1bmcp/protobuf/progress.proto\"\x85\x01\n" +
+	"\x13StreamCountResponse\x12.\n" +
 	"\bprogress\x18\x01 \x01(\v2\x10.mcp.MCPProgressH\x00R\bprogress\x123\n" +
 	"\x06result\x18\x02 \x01(\v2\x19.counter.v1.CountResponseH\x00R\x06resultB\t\n" +
-	"\apayload2\xb8\x02\n" +
-	"\x0eCounterService\x12\xd4\x01\n" +
-	"\x05Count\x12\x18.counter.v1.CountRequest\x1a\x1c.counter.v1.CountStreamChunk\"\x90\x01\xca\xf3\x18\x8b\x01\x12\x86\x01Counts from 0 up to the given number. Sends progress updates as it counts. Use with progressToken in _meta for progress notifications.\x18\x010\x01\x1aO\xc2\xf3\x18K\n" +
+	"\apayload2\xe9\x02\n" +
+	"\x0eCounterService\x12\x85\x02\n" +
+	"\vStreamCount\x12\x1e.counter.v1.StreamCountRequest\x1a\x1f.counter.v1.StreamCountResponse\"\xb2\x01\xca\xf3\x18\x8b\x01\x12\x86\x01Counts from 0 up to the given number. Sends progress updates as it counts. Use with progressToken in _meta for progress notifications.\x18\x01\x82\xd3\xe4\x93\x02\x1c:\x01*\"\x17/v1/counter:streamCount0\x01\x1aO\xc2\xf3\x18K\n" +
 	"I\n" +
 	"\vCounter App\x12\x051.0.0\x1a3A simple counter that streams progress as it countsB\x88\x01\n" +
 	"\x0ecom.counter.v1B\x13CounterServiceProtoP\x01Z_github.com/the-protobuf-project/mcp/examples/proto/generated/go/counter/counterpbv1;counterpbv1b\x06proto3"
@@ -135,16 +148,16 @@ func file_counter_v1_counter_service_proto_rawDescGZIP() []byte {
 
 var file_counter_v1_counter_service_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_counter_v1_counter_service_proto_goTypes = []any{
-	(*CountStreamChunk)(nil),     // 0: counter.v1.CountStreamChunk
+	(*StreamCountResponse)(nil),  // 0: counter.v1.StreamCountResponse
 	(*protobuf.MCPProgress)(nil), // 1: mcp.MCPProgress
 	(*CountResponse)(nil),        // 2: counter.v1.CountResponse
-	(*CountRequest)(nil),         // 3: counter.v1.CountRequest
+	(*StreamCountRequest)(nil),   // 3: counter.v1.StreamCountRequest
 }
 var file_counter_v1_counter_service_proto_depIdxs = []int32{
-	1, // 0: counter.v1.CountStreamChunk.progress:type_name -> mcp.MCPProgress
-	2, // 1: counter.v1.CountStreamChunk.result:type_name -> counter.v1.CountResponse
-	3, // 2: counter.v1.CounterService.Count:input_type -> counter.v1.CountRequest
-	0, // 3: counter.v1.CounterService.Count:output_type -> counter.v1.CountStreamChunk
+	1, // 0: counter.v1.StreamCountResponse.progress:type_name -> mcp.MCPProgress
+	2, // 1: counter.v1.StreamCountResponse.result:type_name -> counter.v1.CountResponse
+	3, // 2: counter.v1.CounterService.StreamCount:input_type -> counter.v1.StreamCountRequest
+	0, // 3: counter.v1.CounterService.StreamCount:output_type -> counter.v1.StreamCountResponse
 	3, // [3:4] is the sub-list for method output_type
 	2, // [2:3] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
@@ -159,8 +172,8 @@ func file_counter_v1_counter_service_proto_init() {
 	}
 	file_counter_v1_counter_proto_init()
 	file_counter_v1_counter_service_proto_msgTypes[0].OneofWrappers = []any{
-		(*CountStreamChunk_Progress)(nil),
-		(*CountStreamChunk_Result)(nil),
+		(*StreamCountResponse_Progress)(nil),
+		(*StreamCountResponse_Result)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

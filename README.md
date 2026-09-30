@@ -57,6 +57,7 @@ Open-sourced by **The Protobuf Project**.
 ## Features
 
 - **Multi-language** — Generate MCP server code for Go, Rust, and C++ from a single `.proto` file
+- **Editions** — Accepts `proto2`, `proto3` and editions `2023`/`2024` files
 - **Tools** — Every unary RPC becomes an MCP tool with a JSON Schema derived from the protobuf request message
 - **Prompts** — Attach prompt templates to RPCs with schema-validated arguments via `(mcp.v1.prompt)`
 - **Field descriptions** — Add `(mcp.v1.field) = { description: "..." }` to message fields for schema descriptions
@@ -70,7 +71,7 @@ Open-sourced by **The Protobuf Project**.
 
 | Language   | Generated File                     | Example                              |
 |------------|------------------------------------|--------------------------------------|
-| **Go**     | `*_service.pb.mcp.go`              | [`examples/go`](examples/go)         |
+| **Go**     | `*_service.pb.mcp.go` + one `mcp_shared.pb.mcp.go` per package | [`examples/go`](examples/go)         |
 | **Rust**   | `*_service.mcp.rs`                 | [`examples/rust`](examples/rust)     |
 | **C++**    | `*_service.mcp.h/cc` + Rust bridge | [`examples/cpp`](examples/cpp)       |
 
@@ -498,8 +499,15 @@ For each proto service, the plugin generates:
 The tool's `inputSchema` is derived from the protobuf request message:
 
 - Field types → JSON Schema types
-- `google.api.field_behavior` REQUIRED → JSON Schema `required`
-- `buf.validate` constraints → `minLength`, `maxLength`, `pattern`, `minimum`, `maximum`, etc.
+- `google.api.field_behavior` REQUIRED or `(buf.validate.field).required` → JSON Schema `required` (never for `oneof` members or fields with `IGNORE_ALWAYS`)
+- `buf.validate` rules:
+  - string: `const`, `in`, `len`, `min_len`, `max_len`, `pattern`, and `email`, `hostname`, `ipv4`, `ipv6`, `uri`, `uri_ref`, `uuid` → `format`
+  - 32-bit integers, `float` and `double`: `const`, `in`, `gt`/`gte` → `minimum`/`exclusiveMinimum`, `lt`/`lte` → `maximum`/`exclusiveMaximum` (exclusive integer bounds become inclusive)
+  - enum: `const`, `in`, `not_in` narrow the listed values; bool: `const`
+  - repeated: `min_items`, `max_items`, `unique`, and `items` rules on each element; map: `min_pairs`, `max_pairs` → `minProperties`, `maxProperties`
+  - `IGNORE_IF_ZERO_VALUE` keeps the zero value valid through `anyOf`; `IGNORE_ALWAYS` drops the field's rules
+  - CEL expressions, predefined rules, 64-bit integer bounds (JSON strings) and exclusive-outside ranges (`gt` > `lt`) are left to server-side validation
+  - OpenAI-compatible schemas keep only the strict Structured Outputs subset: `const` becomes a one-value `enum`; `minLength`, `maxLength`, `uniqueItems` and unsupported formats are dropped; `IGNORE_IF_ZERO_VALUE` fields stay unconstrained
 - Well-known types (Timestamp, Duration, FieldMask, Struct, Any, wrappers) → appropriate JSON Schema
 - Protobuf `oneof` → JSON Schema `oneOf`/`anyOf`
 - Enums → JSON Schema `enum` with string values; `(mcp.v1.enum)` / `(mcp.v1.enum_value)` → `description` and `enumDescriptions`
@@ -564,12 +572,12 @@ when the client sent no `progressToken` the sink is inert, so there is nothing
 to branch on:
 
 ```rust
-async fn count(&self, args: Value, progress: McpProgressSink) -> Result<Value, McpError> {
-    let to = args.get("to").and_then(Value::as_i64).unwrap_or(0);
-    for n in 1..=to {
-        progress.send(n as f64, Some(to as f64), Some(format!("counted {n}"))).await;
+async fn stream_count(&self, args: Value, progress: McpProgressSink) -> Result<Value, McpError> {
+    let target = args.get("target").and_then(Value::as_i64).unwrap_or(0);
+    for n in 1..=target {
+        progress.send(n as f64, Some(target as f64), Some(format!("counted {n}"))).await;
     }
-    Ok(json!({ "total": to }))
+    Ok(json!({ "count": target }))
 }
 ```
 
