@@ -8,6 +8,7 @@ package galleryv1
 
 import (
 	_ "github.com/the-protobuf-project/mcp/protobuf/mcppb"
+	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -26,15 +27,16 @@ var File_gallery_v1_gallery_service_proto protoreflect.FileDescriptor
 const file_gallery_v1_gallery_service_proto_rawDesc = "" +
 	"\n" +
 	" gallery/v1/gallery_service.proto\x12\n" +
-	"gallery.v1\x1a\x18gallery/v1/gallery.proto\x1a\x18mcp/v1/annotations.proto2\xc9\x0e\n" +
-	"\x0eGalleryService\x12\xf0\x02\n" +
+	"gallery.v1\x1a\x18gallery/v1/gallery.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x17google/api/client.proto\x1a\x18mcp/v1/annotations.proto2\xf2\x0e\n" +
+	"\x0eGalleryService\x12\x82\x03\n" +
 	"\n" +
-	"ListAssets\x12\x1d.gallery.v1.ListAssetsRequest\x1a\x1e.gallery.v1.ListAssetsResponse\"\xa2\x02\xca\xf3\x18\x95\x01\n" +
+	"ListAssets\x12\x1d.gallery.v1.ListAssetsRequest\x1a\x1e.gallery.v1.ListAssetsResponse\"\xb4\x02\xca\xf3\x18\x95\x01\n" +
 	"\vlist_assets\x12<List gallery assets, optionally filtered by IANA media type. \x010\x018\x00B\vList assetsJ5\n" +
 	"\"https://example.com/icons/list.svg\x12\rimage/svg+xml \x01\xd2\xf3\x18\x83\x01\n" +
-	"\x11summarize_gallery\x127Summarise what the gallery holds, grouped by media type\x1a\x1cgallery.v1.ListAssetsRequest \x02*\x15Summarise the gallery\x12\x90\x01\n" +
-	"\bGetAsset\x12\x1b.gallery.v1.GetAssetRequest\x1a\x1c.gallery.v1.GetAssetResponse\"I\xca\xf3\x18E\n" +
-	"\tget_asset\x122Fetch a single asset's content and its media type. \x010\x018\x00\x1a\xb0\n" +
+	"\x11summarize_gallery\x127Summarise what the gallery holds, grouped by media type\x1a\x1cgallery.v1.ListAssetsRequest \x02*\x15Summarise the gallery\x82\xd3\xe4\x93\x02\f\x12\n" +
+	"/v1/assets\x12\xa7\x01\n" +
+	"\bGetAsset\x12\x1b.gallery.v1.GetAssetRequest\x1a\x11.gallery.v1.Asset\"k\xdaA\x04name\xca\xf3\x18E\n" +
+	"\tget_asset\x122Fetch a single asset's content and its media type. \x010\x018\x00\x82\xd3\xe4\x93\x02\x15\x12\x13/v1/{name=assets/*}\x1a\xb0\n" +
 	"\xc2\xf3\x18\xab\n" +
 	"\n" +
 	"\xc1\x01\n" +
@@ -53,19 +55,20 @@ const file_gallery_v1_gallery_service_proto_rawDesc = "" +
 	"#https://example.com/icons/image.png\x12\timage/png\x1a\x0548x48\x1a\x0596x96\n" +
 	"\x19gallery://images/logo.png\x12\x84\x01\x1a\x04spec\"\x14Format specification*9A PDF a client will offer for download rather than inline2\x0fapplication/pdf8\xfa\x04\n" +
 	"\x17gallery://docs/spec.pdf\x12y\x1a\x05asset\"\x11Any gallery asset*)Template matching any asset by identifier2\x18application/octet-stream\x12\x18gallery://assets/{asset}\x1a\a\n" +
-	"\x03\b\xac\x02\x10\x01BOZMgithub.com/the-protobuf-project/mcp/examples/mime/gen/go/gallery/v1;galleryv1b\x06proto3"
+	"\x03\b\xac\x02\x10\x01Bv\n" +
+	"\x0ecom.gallery.v1B\x13GalleryServiceProtoP\x01ZMgithub.com/the-protobuf-project/mcp/examples/mime/gen/go/gallery/v1;galleryv1b\x06proto3"
 
 var file_gallery_v1_gallery_service_proto_goTypes = []any{
 	(*ListAssetsRequest)(nil),  // 0: gallery.v1.ListAssetsRequest
 	(*GetAssetRequest)(nil),    // 1: gallery.v1.GetAssetRequest
 	(*ListAssetsResponse)(nil), // 2: gallery.v1.ListAssetsResponse
-	(*GetAssetResponse)(nil),   // 3: gallery.v1.GetAssetResponse
+	(*Asset)(nil),              // 3: gallery.v1.Asset
 }
 var file_gallery_v1_gallery_service_proto_depIdxs = []int32{
 	0, // 0: gallery.v1.GalleryService.ListAssets:input_type -> gallery.v1.ListAssetsRequest
 	1, // 1: gallery.v1.GalleryService.GetAsset:input_type -> gallery.v1.GetAssetRequest
 	2, // 2: gallery.v1.GalleryService.ListAssets:output_type -> gallery.v1.ListAssetsResponse
-	3, // 3: gallery.v1.GalleryService.GetAsset:output_type -> gallery.v1.GetAssetResponse
+	3, // 3: gallery.v1.GalleryService.GetAsset:output_type -> gallery.v1.Asset
 	2, // [2:4] is the sub-list for method output_type
 	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

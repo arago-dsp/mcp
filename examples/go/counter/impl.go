@@ -22,11 +22,11 @@ func newCounterServer() *counterServer {
 	return &counterServer{}
 }
 
-// Count streams progress updates as it counts from 0 to req.To, then sends the final result.
+// StreamCount streams progress updates as it counts from 0 to req.Target, then sends the final result.
 // Only sends MCPProgress chunks when the client passed progressToken in gRPC metadata
 // (mcp-progress-token), i.e. when the MCP client included it in params._meta.
-func (s *counterServer) Count(req *counterpbv1.CountRequest, stream grpc.ServerStreamingServer[counterpbv1.CountStreamChunk]) error {
-	to := req.GetTo()
+func (s *counterServer) StreamCount(req *counterpbv1.StreamCountRequest, stream grpc.ServerStreamingServer[counterpbv1.StreamCountResponse]) error {
+	to := req.GetTarget()
 	if to < 0 {
 		to = 0
 	}
@@ -45,8 +45,8 @@ func (s *counterServer) Count(req *counterpbv1.CountRequest, stream grpc.ServerS
 		if wantsProgress {
 			// Send progress update
 			progress := float64(i + 1)
-			chunk := &counterpbv1.CountStreamChunk{
-				Payload: &counterpbv1.CountStreamChunk_Progress{
+			chunk := &counterpbv1.StreamCountResponse{
+				Payload: &counterpbv1.StreamCountResponse_Progress{
 					Progress: &mcppb.MCPProgress{
 						Progress: progress,
 						Total:    &total,
@@ -62,8 +62,8 @@ func (s *counterServer) Count(req *counterpbv1.CountRequest, stream grpc.ServerS
 	}
 
 	// Send final result
-	chunk := &counterpbv1.CountStreamChunk{
-		Payload: &counterpbv1.CountStreamChunk_Result{
+	chunk := &counterpbv1.StreamCountResponse{
+		Payload: &counterpbv1.StreamCountResponse_Result{
 			Result: &counterpbv1.CountResponse{Count: to},
 		},
 	}

@@ -2,18 +2,22 @@ syntax = "proto3";
 
 package counter.v1;
 
+import "google/api/field_behavior.proto";
+import "mcp/protobuf/annotations.proto";
+import "mcp/protobuf/field.proto";
+
 option go_package = "github.com/the-protobuf-project/mcp/examples/proto/generated/go/counter/counterpbv1;counterpbv1";
 option java_multiple_files = true;
 option java_outer_classname = "CounterProto";
 option java_package = "com.counter.v1";
 
-import "mcp/protobuf/annotations.proto";
-import "mcp/protobuf/field.proto";
-
-// Request to count from 0 up to a target number.
-message CountRequest {
-  // The number to count up to (e.g. 10).
-  int32 to = 1 [
+// Request for CounterService.StreamCount: count from 0 up to a target number.
+message StreamCountRequest {
+  // The number to count up to (e.g. 10). Named `target` rather than `to`
+  // because AIP-140 reserves prepositions for relationships between
+  // resources, not for the value a field carries.
+  int32 target = 1 [
+    (google.api.field_behavior) = REQUIRED,
     (mcp.field) = {
       description: "Count from 0 up to this number. Progress updates are sent each step."
       examples: "5"

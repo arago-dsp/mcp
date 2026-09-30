@@ -19,7 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CounterService_Count_FullMethodName = "/counter.v1.CounterService/Count"
+	CounterService_StreamCount_FullMethodName = "/counter.v1.CounterService/StreamCount"
 )
 
 // CounterServiceClient is the client API for CounterService service.
@@ -29,7 +29,10 @@ const (
 // Counter service demonstrates MCP progress via server streaming.
 type CounterServiceClient interface {
 	// Counts from 0 up to the requested number, streaming progress updates.
-	Count(ctx context.Context, in *CountRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CountStreamChunk], error)
+	//
+	// Named with a verb and a noun per AIP-136: bare `Count` reads as a verb
+	// alone, which leaves the resource being acted on implicit.
+	StreamCount(ctx context.Context, in *StreamCountRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamCountResponse], error)
 }
 
 type counterServiceClient struct {
@@ -40,13 +43,13 @@ func NewCounterServiceClient(cc grpc.ClientConnInterface) CounterServiceClient {
 	return &counterServiceClient{cc}
 }
 
-func (c *counterServiceClient) Count(ctx context.Context, in *CountRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CountStreamChunk], error) {
+func (c *counterServiceClient) StreamCount(ctx context.Context, in *StreamCountRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamCountResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &CounterService_ServiceDesc.Streams[0], CounterService_Count_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &CounterService_ServiceDesc.Streams[0], CounterService_StreamCount_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[CountRequest, CountStreamChunk]{ClientStream: stream}
+	x := &grpc.GenericClientStream[StreamCountRequest, StreamCountResponse]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -57,7 +60,7 @@ func (c *counterServiceClient) Count(ctx context.Context, in *CountRequest, opts
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type CounterService_CountClient = grpc.ServerStreamingClient[CountStreamChunk]
+type CounterService_StreamCountClient = grpc.ServerStreamingClient[StreamCountResponse]
 
 // CounterServiceServer is the server API for CounterService service.
 // All implementations must embed UnimplementedCounterServiceServer
@@ -66,7 +69,10 @@ type CounterService_CountClient = grpc.ServerStreamingClient[CountStreamChunk]
 // Counter service demonstrates MCP progress via server streaming.
 type CounterServiceServer interface {
 	// Counts from 0 up to the requested number, streaming progress updates.
-	Count(*CountRequest, grpc.ServerStreamingServer[CountStreamChunk]) error
+	//
+	// Named with a verb and a noun per AIP-136: bare `Count` reads as a verb
+	// alone, which leaves the resource being acted on implicit.
+	StreamCount(*StreamCountRequest, grpc.ServerStreamingServer[StreamCountResponse]) error
 	mustEmbedUnimplementedCounterServiceServer()
 }
 
@@ -77,8 +83,8 @@ type CounterServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedCounterServiceServer struct{}
 
-func (UnimplementedCounterServiceServer) Count(*CountRequest, grpc.ServerStreamingServer[CountStreamChunk]) error {
-	return status.Error(codes.Unimplemented, "method Count not implemented")
+func (UnimplementedCounterServiceServer) StreamCount(*StreamCountRequest, grpc.ServerStreamingServer[StreamCountResponse]) error {
+	return status.Error(codes.Unimplemented, "method StreamCount not implemented")
 }
 func (UnimplementedCounterServiceServer) mustEmbedUnimplementedCounterServiceServer() {}
 func (UnimplementedCounterServiceServer) testEmbeddedByValue()                        {}
@@ -101,16 +107,16 @@ func RegisterCounterServiceServer(s grpc.ServiceRegistrar, srv CounterServiceSer
 	s.RegisterService(&CounterService_ServiceDesc, srv)
 }
 
-func _CounterService_Count_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(CountRequest)
+func _CounterService_StreamCount_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamCountRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(CounterServiceServer).Count(m, &grpc.GenericServerStream[CountRequest, CountStreamChunk]{ServerStream: stream})
+	return srv.(CounterServiceServer).StreamCount(m, &grpc.GenericServerStream[StreamCountRequest, StreamCountResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type CounterService_CountServer = grpc.ServerStreamingServer[CountStreamChunk]
+type CounterService_StreamCountServer = grpc.ServerStreamingServer[StreamCountResponse]
 
 // CounterService_ServiceDesc is the grpc.ServiceDesc for CounterService service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -121,8 +127,8 @@ var CounterService_ServiceDesc = grpc.ServiceDesc{
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Count",
-			Handler:       _CounterService_Count_Handler,
+			StreamName:    "StreamCount",
+			Handler:       _CounterService_StreamCount_Handler,
 			ServerStreams: true,
 		},
 	},

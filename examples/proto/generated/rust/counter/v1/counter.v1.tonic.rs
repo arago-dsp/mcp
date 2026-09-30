@@ -90,11 +90,11 @@ pub mod counter_service_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
-        pub async fn count(
+        pub async fn stream_count(
             &mut self,
-            request: impl tonic::IntoRequest<super::CountRequest>,
+            request: impl tonic::IntoRequest<super::StreamCountRequest>,
         ) -> std::result::Result<
-            tonic::Response<tonic::codec::Streaming<super::CountStreamChunk>>,
+            tonic::Response<tonic::codec::Streaming<super::StreamCountResponse>>,
             tonic::Status,
         > {
             self.inner
@@ -107,11 +107,11 @@ pub mod counter_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/counter.v1.CounterService/Count",
+                "/counter.v1.CounterService/StreamCount",
             );
             let mut req = request.into_request();
             req.extensions_mut()
-                .insert(GrpcMethod::new("counter.v1.CounterService", "Count"));
+                .insert(GrpcMethod::new("counter.v1.CounterService", "StreamCount"));
             self.inner.server_streaming(req, path, codec).await
         }
     }
@@ -129,16 +129,19 @@ pub mod counter_service_server {
     /// Generated trait containing gRPC methods that should be implemented for use with CounterServiceServer.
     #[async_trait]
     pub trait CounterService: std::marker::Send + std::marker::Sync + 'static {
-        /// Server streaming response type for the Count method.
-        type CountStream: tonic::codegen::tokio_stream::Stream<
-                Item = std::result::Result<super::CountStreamChunk, tonic::Status>,
+        /// Server streaming response type for the StreamCount method.
+        type StreamCountStream: tonic::codegen::tokio_stream::Stream<
+                Item = std::result::Result<super::StreamCountResponse, tonic::Status>,
             >
             + std::marker::Send
             + 'static;
-        async fn count(
+        async fn stream_count(
             &self,
-            request: tonic::Request<super::CountRequest>,
-        ) -> std::result::Result<tonic::Response<Self::CountStream>, tonic::Status>;
+            request: tonic::Request<super::StreamCountRequest>,
+        ) -> std::result::Result<
+            tonic::Response<Self::StreamCountStream>,
+            tonic::Status,
+        >;
     }
     #[derive(Debug)]
     pub struct CounterServiceServer<T> {
@@ -216,26 +219,26 @@ pub mod counter_service_server {
         }
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             match req.uri().path() {
-                "/counter.v1.CounterService/Count" => {
+                "/counter.v1.CounterService/StreamCount" => {
                     #[allow(non_camel_case_types)]
-                    struct CountSvc<T: CounterService>(pub Arc<T>);
+                    struct StreamCountSvc<T: CounterService>(pub Arc<T>);
                     impl<
                         T: CounterService,
-                    > tonic::server::ServerStreamingService<super::CountRequest>
-                    for CountSvc<T> {
-                        type Response = super::CountStreamChunk;
-                        type ResponseStream = T::CountStream;
+                    > tonic::server::ServerStreamingService<super::StreamCountRequest>
+                    for StreamCountSvc<T> {
+                        type Response = super::StreamCountResponse;
+                        type ResponseStream = T::StreamCountStream;
                         type Future = BoxFuture<
                             tonic::Response<Self::ResponseStream>,
                             tonic::Status,
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::CountRequest>,
+                            request: tonic::Request<super::StreamCountRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as CounterService>::count(&inner, request).await
+                                <T as CounterService>::stream_count(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -246,7 +249,7 @@ pub mod counter_service_server {
                     let max_encoding_message_size = self.max_encoding_message_size;
                     let inner = self.inner.clone();
                     let fut = async move {
-                        let method = CountSvc(inner);
+                        let method = StreamCountSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

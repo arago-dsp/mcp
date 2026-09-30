@@ -3,54 +3,69 @@
 /// Asset is a single item in the gallery. Every asset carries an IANA media type
 /// so an MCP client knows how to render it: Markdown as prose, PNG as an image,
 /// PDF as a download, and so on.
+///
+/// The asset carries its own content, so GetAsset can return the resource itself
+/// rather than a wrapper, as AIP-131 requires.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Asset {
-    /// Stable identifier, e.g. "overview".
+    /// Relative resource name, e.g. "assets/overview". The last segment is the
+    /// asset's stable identifier; AIP-148 keeps it there rather than duplicating
+    /// it in an `id` field.
     #[prost(string, tag="1")]
-    pub id: ::prost::alloc::string::String,
+    pub name: ::prost::alloc::string::String,
     /// Human-readable name shown in the client UI.
-    #[prost(string, tag="2")]
+    #[prost(string, tag="3")]
     pub title: ::prost::alloc::string::String,
     /// The asset's IANA media type, e.g. "text/markdown" or "image/png". This is
     /// the same value carried by the resource declarations on GalleryService.
-    #[prost(string, tag="3")]
+    #[prost(string, tag="4")]
     pub mime_type: ::prost::alloc::string::String,
     /// Canonical URI the asset is served from.
-    #[prost(string, tag="4")]
+    #[prost(string, tag="5")]
     pub uri: ::prost::alloc::string::String,
     /// Size of the raw content in bytes.
-    #[prost(int64, tag="5")]
+    #[prost(int64, tag="6")]
     pub size_bytes: i64,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ListAssetsRequest {
-    /// Restrict the listing to one media type, e.g. "image/png". Empty returns all.
-    #[prost(string, tag="1")]
-    pub mime_type: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListAssetsResponse {
-    #[prost(message, repeated, tag="1")]
-    pub assets: ::prost::alloc::vec::Vec<Asset>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAssetRequest {
-    /// Identifier of the asset to fetch.
-    #[prost(string, tag="1")]
-    pub id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAssetResponse {
-    /// The asset's metadata, including its media type.
-    #[prost(message, optional, tag="1")]
-    pub asset: ::core::option::Option<Asset>,
     /// Text content, set when the media type is textual (Markdown, HTML, JSON, CSV).
-    #[prost(string, tag="2")]
+    #[prost(string, tag="7")]
     pub text: ::prost::alloc::string::String,
     /// Raw bytes, set when the media type is binary (PNG, PDF). Serialised as
     /// base64 in JSON, which is why the schema reports it with the "byte" format.
-    #[prost(bytes="vec", tag="3")]
+    #[prost(bytes="vec", tag="8")]
     pub data: ::prost::alloc::vec::Vec<u8>,
+}
+/// Request message for GalleryService.ListAssets.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListAssetsRequest {
+    /// The maximum number of assets to return. The server may return fewer.
+    #[prost(int32, tag="1")]
+    pub page_size: i32,
+    /// A page token from a previous ListAssets call, to fetch the next page.
+    #[prost(string, tag="2")]
+    pub page_token: ::prost::alloc::string::String,
+    /// Restricts the listing, e.g. `mime_type = "image/png"`. Empty returns every
+    /// asset. AIP-132 reserves a single `filter` string for this, which is why the
+    /// media type is not its own request field.
+    #[prost(string, tag="3")]
+    pub filter: ::prost::alloc::string::String,
+}
+/// Response message for GalleryService.ListAssets.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListAssetsResponse {
+    /// The assets in this page of results.
+    #[prost(message, repeated, tag="1")]
+    pub assets: ::prost::alloc::vec::Vec<Asset>,
+    /// Token to pass as `page_token` to retrieve the next page. Empty when this is
+    /// the last page.
+    #[prost(string, tag="2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+/// Request message for GalleryService.GetAsset.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAssetRequest {
+    /// Relative resource name of the asset to fetch, e.g. "assets/overview".
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
 }
 include!("gallery.v1.tonic.rs");
 // @@protoc_insertion_point(module)

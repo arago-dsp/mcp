@@ -2,14 +2,14 @@ syntax = "proto3";
 
 package mcp.v1;
 
+import "mcp/v1/app.proto";
+import "mcp/v1/cache.proto";
+import "mcp/v1/resource.proto";
+
 option go_package = "github.com/the-protobuf-project/mcp/protobuf/mcppb";
 option java_multiple_files = true;
 option java_outer_classname = "ServiceOptionsProto";
 option java_package = "com.mcp.v1";
-
-import "mcp/v1/app.proto";
-import "mcp/v1/cache.proto";
-import "mcp/v1/resource.proto";
 
 // MCPServiceOptions configures MCP behaviour for an entire gRPC service.
 message MCPServiceOptions {
