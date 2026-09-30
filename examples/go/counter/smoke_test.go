@@ -67,13 +67,13 @@ func TestSmokeCounterService(t *testing.T) {
 	if len(toolsResult.Tools) != 1 {
 		t.Fatalf("expected 1 tool, got %d", len(toolsResult.Tools))
 	}
-	if toolsResult.Tools[0].Name != "counter_service-count_v1" {
-		t.Fatalf("expected tool counter_service-count_v1, got %s", toolsResult.Tools[0].Name)
+	if toolsResult.Tools[0].Name != "counter_service-stream_count_v1" {
+		t.Fatalf("expected tool counter_service-stream_count_v1, got %s", toolsResult.Tools[0].Name)
 	}
 
-	countArgs, _ := json.Marshal(map[string]any{"to": 3})
+	countArgs, _ := json.Marshal(map[string]any{"target": 3})
 	countResult, err := session.CallTool(ctx, &mcpsdk.CallToolParams{
-		Name:      "counter_service-count_v1",
+		Name:      "counter_service-stream_count_v1",
 		Arguments: json.RawMessage(countArgs),
 	})
 	if err != nil {

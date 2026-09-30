@@ -115,14 +115,14 @@ pub mod gallery_service_client {
             self.inner.unary(req, path, codec).await
         }
         /** Fetches one asset's content along with the media type describing it.
+
+ Returns the Asset itself rather than a wrapper: AIP-131 requires a Get to
+ return the resource, so the content fields live on Asset.
 */
         pub async fn get_asset(
             &mut self,
             request: impl tonic::IntoRequest<super::GetAssetRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetAssetResponse>,
-            tonic::Status,
-        > {
+        ) -> std::result::Result<tonic::Response<super::Asset>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -163,14 +163,14 @@ pub mod gallery_service_server {
             tonic::Status,
         >;
         /** Fetches one asset's content along with the media type describing it.
+
+ Returns the Asset itself rather than a wrapper: AIP-131 requires a Get to
+ return the resource, so the content fields live on Asset.
 */
         async fn get_asset(
             &self,
             request: tonic::Request<super::GetAssetRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetAssetResponse>,
-            tonic::Status,
-        >;
+        ) -> std::result::Result<tonic::Response<super::Asset>, tonic::Status>;
     }
     #[derive(Debug)]
     pub struct GalleryServiceServer<T> {
@@ -300,7 +300,7 @@ pub mod gallery_service_server {
                         T: GalleryService,
                     > tonic::server::UnaryService<super::GetAssetRequest>
                     for GetAssetSvc<T> {
-                        type Response = super::GetAssetResponse;
+                        type Response = super::Asset;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,

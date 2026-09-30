@@ -397,8 +397,8 @@ const file_todo_v1_todo_mcp_proto_rawDesc = "" +
 	"#PRIORITIZATION_STRATEGY_UNSPECIFIED\x10\x00\x12#\n" +
 	"\x1fPRIORITIZATION_STRATEGY_URGENCY\x10\x01\x12$\n" +
 	" PRIORITIZATION_STRATEGY_DEADLINE\x10\x02\x12\"\n" +
-	"\x1ePRIORITIZATION_STRATEGY_EFFORT\x10\x03By\n" +
-	"\vcom.todo.v1B\x10TodoServiceProtoP\x01ZVgithub.com/the-protobuf-project/mcp/examples/proto/generated/go/todo/todopbv1;todopbv1b\x06proto3"
+	"\x1ePRIORITIZATION_STRATEGY_EFFORT\x10\x03Bu\n" +
+	"\vcom.todo.v1B\fTodoMcpProtoP\x01ZVgithub.com/the-protobuf-project/mcp/examples/proto/generated/go/todo/todopbv1;todopbv1b\x06proto3"
 
 var (
 	file_todo_v1_todo_mcp_proto_rawDescOnce sync.Once

@@ -34,7 +34,7 @@ func TestRegisterCounterServiceMCPHandler(t *testing.T) {
 	})
 
 	// counterServer implements CounterServiceMCPServer because
-	// InProcessServerStream[*CountStreamChunk] satisfies CounterService_CountServer.
+	// InProcessServerStream[*StreamCountResponse] satisfies CounterService_StreamCountServer.
 	counterpbv1.RegisterCounterServiceMCPHandler(mcpServer, newCounterServer())
 
 	// Use the streamable-HTTP transport so that detached-context notifications
@@ -83,21 +83,21 @@ func TestRegisterCounterServiceMCPHandler(t *testing.T) {
 	}
 	found := false
 	for _, tool := range toolsResult.Tools {
-		if tool.Name == "counter_service-count_v1" {
+		if tool.Name == "counter_service-stream_count_v1" {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Fatalf("tool counter_service-count_v1 not found; tools: %v", toolsResult.Tools)
+		t.Fatalf("tool counter_service-stream_count_v1 not found; tools: %v", toolsResult.Tools)
 	}
-	t.Logf("Tool listed OK: counter_service-count_v1")
+	t.Logf("Tool listed OK: counter_service-stream_count_v1")
 
 	// 2. Call Count(to=3) with progressToken — expect immediate {"status":"started"}.
 	// Meta must be pre-initialized; SetProgressToken doesn't call SetMeta when nil.
-	countArgs, _ := json.Marshal(map[string]any{"to": 3})
+	countArgs, _ := json.Marshal(map[string]any{"target": 3})
 	callParams := &mcpsdk.CallToolParams{
-		Name:      "counter_service-count_v1",
+		Name:      "counter_service-stream_count_v1",
 		Arguments: json.RawMessage(countArgs),
 		Meta:      mcpsdk.Meta{},
 	}

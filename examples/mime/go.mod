@@ -21,6 +21,7 @@ go 1.26.4
 require (
 	github.com/the-protobuf-project/mcp v0.0.0
 	github.com/the-protobuf-project/runtime-go/agents v0.0.0-20260818025400-e63524c03160
+	google.golang.org/genproto/googleapis/api v0.0.0-20260810153831-ec0a7760b754
 	google.golang.org/grpc v1.83.0
 	google.golang.org/protobuf v1.36.12
 )

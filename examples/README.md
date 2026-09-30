@@ -64,7 +64,11 @@ service CounterService {
     app: { name: "Counter App" version: "1.0.0" description: "..." }
   };
 
-  rpc Count(CountRequest) returns (stream CountStreamChunk) {
+  rpc StreamCount(StreamCountRequest) returns (stream StreamCountResponse) {
+    option (google.api.http) = {
+      post: "/v1/counter:streamCount"
+      body: "*"
+    };
     option (mcp.tool) = {
       description: "Counts from 0 up to the given number. Sends progress updates."
       progress: true
@@ -72,7 +76,7 @@ service CounterService {
   }
 }
 
-message CountStreamChunk {
+message StreamCountResponse {
   oneof payload {
     mcp.MCPProgress progress = 1;
     CountResponse result = 2;
@@ -124,7 +128,7 @@ This produces:
 
 | Tool Name | Description |
 | ------------------------------------ | ----------------------------------------- |
-| `counter_service-count_v1` | Counts from 0 to N with progress updates |
+| `counter_service-stream_count_v1` | Counts from 0 to N with progress updates |
 
 ## Language Examples
 

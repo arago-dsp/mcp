@@ -1,0 +1,24 @@
+# Proto workspace config (Protobuf AIP Linter)
+# See: https://github.com/the-protobuf-project/google-api-linter-vscode
+
+# Optional: list of directories containing .proto files (default: this directory)
+# proto_path: .
+
+# Optional: folders and files the linter skips entirely. A bare directory name
+# covers everything under it; * and ** work as usual.
+#
+# Bazel's convenience symlinks (bazel-bin, bazel-out, bazel-testlogs and
+# bazel-<workspace>) point into the build cache, and bazel-<workspace> is the
+# execroot: a mirror of the whole source tree. Without this, once a build has
+# run every proto here is linted twice, once as itself and once through the
+# mirror.
+#
+# Both wildcards are load-bearing, and a plain `bazel-*` excludes nothing:
+#   - `exclude` is matched against proto file paths, and a `*` never crosses a
+#     `/`, so `bazel-*` matches the bare directory name and no file under it.
+#     The shorthand that expands a directory name to cover its contents only
+#     applies to patterns with no wildcard, which `bazel-*` is not.
+#   - the leading `**/` catches symlinks left by a build run from a
+#     subdirectory; without it the pattern is anchored at this directory.
+exclude:
+  - "**/bazel-*/**"
