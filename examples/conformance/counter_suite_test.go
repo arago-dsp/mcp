@@ -12,7 +12,7 @@ import (
 
 // countTool is the single tool CounterService exposes. Its RPC is
 // server-streaming, which is how the generator models MCP progress.
-const countTool = "counter_service-count_v1"
+const countTool = "counter_service-stream_count_v1"
 
 // runCounterSuite drives one CounterService server.
 func runCounterSuite(t *testing.T, tg target, session *mcpsdk.ClientSession, rec *progressRecorder) {
@@ -69,7 +69,7 @@ func counterProgress(t *testing.T, tg target, ctx context.Context, session *mcps
 	const countTo = 3
 	params := &mcpsdk.CallToolParams{
 		Name:      countTool,
-		Arguments: map[string]any{"to": countTo},
+		Arguments: map[string]any{"target": countTo},
 		Meta:      mcpsdk.Meta{},
 	}
 	params.SetProgressToken("conformance-progress")
@@ -149,7 +149,7 @@ func assertCountResult(t *testing.T, ctx context.Context, rec *progressRecorder,
 func counterWithoutProgressToken(t *testing.T, ctx context.Context, session *mcpsdk.ClientSession) {
 	res, err := session.CallTool(ctx, &mcpsdk.CallToolParams{
 		Name:      countTool,
-		Arguments: map[string]any{"to": 2},
+		Arguments: map[string]any{"target": 2},
 	})
 	if err != nil {
 		t.Fatalf("tools/call %s without a progressToken: %v", countTool, err)

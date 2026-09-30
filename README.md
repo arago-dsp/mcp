@@ -564,12 +564,12 @@ when the client sent no `progressToken` the sink is inert, so there is nothing
 to branch on:
 
 ```rust
-async fn count(&self, args: Value, progress: McpProgressSink) -> Result<Value, McpError> {
-    let to = args.get("to").and_then(Value::as_i64).unwrap_or(0);
-    for n in 1..=to {
-        progress.send(n as f64, Some(to as f64), Some(format!("counted {n}"))).await;
+async fn stream_count(&self, args: Value, progress: McpProgressSink) -> Result<Value, McpError> {
+    let target = args.get("target").and_then(Value::as_i64).unwrap_or(0);
+    for n in 1..=target {
+        progress.send(n as f64, Some(target as f64), Some(format!("counted {n}"))).await;
     }
-    Ok(json!({ "total": to }))
+    Ok(json!({ "count": target }))
 }
 ```
 

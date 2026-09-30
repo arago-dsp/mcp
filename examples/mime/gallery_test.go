@@ -177,21 +177,81 @@ func TestAppResourceIsHTML(t *testing.T) {
 	t.Errorf("app resource %s missing from listing", appURI)
 }
 
-// The tool filter is the media type, so an unknown one must fail loudly rather
-// than quietly returning nothing.
+// The tool filter narrows on media type, so an unknown one must fail loudly
+// rather than quietly returning nothing.
 func TestListAssetsFiltersByMediaType(t *testing.T) {
 	srv := &galleryServer{}
 
-	got, err := srv.ListAssets(context.Background(), &galleryv1.ListAssetsRequest{MimeType: "text/markdown"})
+	got, err := srv.ListAssets(context.Background(), &galleryv1.ListAssetsRequest{Filter: `mime_type = "text/markdown"`})
 	if err != nil {
 		t.Fatalf("ListAssets: %v", err)
 	}
-	if len(got.GetAssets()) != 1 || got.GetAssets()[0].GetId() != "overview" {
-		t.Errorf("filtering on text/markdown returned %v, want just overview", got.GetAssets())
+	if len(got.GetAssets()) != 1 || got.GetAssets()[0].GetName() != "assets/overview" {
+		t.Errorf("filtering on text/markdown returned %v, want just assets/overview", got.GetAssets())
 	}
 
-	if _, err := srv.ListAssets(context.Background(), &galleryv1.ListAssetsRequest{MimeType: "audio/flac"}); err == nil {
+	if _, err := srv.ListAssets(context.Background(), &galleryv1.ListAssetsRequest{Filter: `mime_type = "audio/flac"`}); err == nil {
 		t.Error("filtering on an absent media type: got nil error, want one")
+	}
+
+	// A filter this gallery cannot interpret is refused rather than ignored,
+	// so a caller never believes a narrowing was applied when it was not.
+	if _, err := srv.ListAssets(context.Background(), &galleryv1.ListAssetsRequest{Filter: "size_bytes > 10"}); err == nil {
+		t.Error("unsupported filter expression: got nil error, want one")
+	}
+}
+
+// Paging walks the whole gallery: each page is capped at page_size and the
+// final page stops handing out a token.
+func TestListAssetsPaginates(t *testing.T) {
+	srv := &galleryServer{}
+
+	var seen []string
+	token := ""
+	for pages := 0; ; pages++ {
+		if pages > len(assets) {
+			t.Fatalf("pagination did not terminate after %d pages", pages)
+		}
+		got, err := srv.ListAssets(context.Background(), &galleryv1.ListAssetsRequest{PageSize: 2, PageToken: token})
+		if err != nil {
+			t.Fatalf("ListAssets(page_token=%q): %v", token, err)
+		}
+		if n := len(got.GetAssets()); n > 2 {
+			t.Fatalf("page held %d assets, want at most page_size=2", n)
+		}
+		for _, a := range got.GetAssets() {
+			seen = append(seen, a.GetName())
+		}
+		if token = got.GetNextPageToken(); token == "" {
+			break
+		}
+	}
+	if len(seen) != len(assets) {
+		t.Errorf("paging yielded %d assets (%v), want all %d", len(seen), seen, len(assets))
+	}
+
+	if _, err := srv.ListAssets(context.Background(), &galleryv1.ListAssetsRequest{PageToken: "not-a-number"}); err == nil {
+		t.Error("invalid page_token: got nil error, want one")
+	}
+}
+
+// GetAsset is addressed by resource name, and anything that is not a name in
+// this collection is rejected before a lookup is attempted.
+func TestGetAssetByResourceName(t *testing.T) {
+	srv := &galleryServer{}
+
+	got, err := srv.GetAsset(context.Background(), &galleryv1.GetAssetRequest{Name: "assets/overview"})
+	if err != nil {
+		t.Fatalf("GetAsset: %v", err)
+	}
+	if got.GetName() != "assets/overview" || got.GetText() == "" {
+		t.Errorf("GetAsset returned name=%q text=%d bytes, want assets/overview with text", got.GetName(), len(got.GetText()))
+	}
+
+	for _, name := range []string{"overview", "assets/", "assets/nested/overview", "other/overview"} {
+		if _, err := srv.GetAsset(context.Background(), &galleryv1.GetAssetRequest{Name: name}); err == nil {
+			t.Errorf("GetAsset(%q): got nil error, want one", name)
+		}
 	}
 }
 
@@ -220,7 +280,7 @@ func TestToolResultCarriesStructuredContent(t *testing.T) {
 
 	out, err := session.CallTool(ctx, &mcp.CallToolParams{
 		Name:      "get_asset",
-		Arguments: map[string]any{"id": "overview"},
+		Arguments: map[string]any{"name": "assets/overview"},
 	})
 	if err != nil {
 		t.Fatalf("CallTool: %v", err)
@@ -236,12 +296,13 @@ func TestToolResultCarriesStructuredContent(t *testing.T) {
 	if !ok {
 		t.Fatalf("structuredContent is %T, want an object", out.StructuredContent)
 	}
-	asset, ok := obj["asset"].(map[string]any)
-	if !ok {
-		t.Fatalf("structuredContent has no asset object: %v", obj)
+	// GetAsset returns the Asset itself rather than a wrapper, so the resource's
+	// own fields sit at the top level of the structured value.
+	if obj["mime_type"] != "text/markdown" {
+		t.Errorf("mime_type = %v, want text/markdown", obj["mime_type"])
 	}
-	if asset["mime_type"] != "text/markdown" {
-		t.Errorf("asset.mime_type = %v, want text/markdown", asset["mime_type"])
+	if obj["name"] != "assets/overview" {
+		t.Errorf("name = %v, want assets/overview", obj["name"])
 	}
 }
 
@@ -330,8 +391,20 @@ func TestDisplayMetadataReachesTheClient(t *testing.T) {
 	if len(p.Arguments) == 0 {
 		t.Fatal("prompt has no arguments")
 	}
-	if p.Arguments[0].Title != "Media type" {
-		t.Errorf("prompt argument Title = %q, want %q", p.Arguments[0].Title, "Media type")
+	// Look the argument up by name: ListAssetsRequest leads with the pagination
+	// fields, so the titled one is not first.
+	var filterArg *mcp.PromptArgument
+	for _, arg := range p.Arguments {
+		if arg.Name == "filter" {
+			filterArg = arg
+			break
+		}
+	}
+	if filterArg == nil {
+		t.Fatalf("prompt has no `filter` argument; got %+v", p.Arguments)
+	}
+	if filterArg.Title != "Filter" {
+		t.Errorf("prompt argument Title = %q, want %q", filterArg.Title, "Filter")
 	}
 
 	resources, err := session.ListResources(ctx, nil)
