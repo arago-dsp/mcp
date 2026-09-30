@@ -13,6 +13,17 @@ import (
 
 	"github.com/the-protobuf-project/protokit/factory"
 	"google.golang.org/protobuf/compiler/protogen"
+	"google.golang.org/protobuf/types/descriptorpb"
+	"google.golang.org/protobuf/types/pluginpb"
+)
+
+// Editions the plugin accepts. The generator reads fields through protoreflect,
+// which resolves editions features (field presence, enum openness) into the
+// same descriptors proto2 and proto3 produce, so the range follows what the
+// linked google.golang.org/protobuf supports.
+const (
+	supportedEditionsMinimum = descriptorpb.Edition_EDITION_PROTO2
+	supportedEditionsMaximum = descriptorpb.Edition_EDITION_2024
 )
 
 // PluginVersion is set by the protoc-gen-mcp binary before generation.
@@ -176,6 +187,7 @@ func Registry(packageSuffix string) *factory.Registry[*Model] {
 // Generate builds the MCP model from gen and renders it for each requested
 // language. A lang of [LangAll] expands to every language the target supports.
 func Generate(gen *protogen.Plugin, lang, packageSuffix string) error {
+	declareEditionsSupport(gen)
 	reg := Registry(packageSuffix)
 	ctx := factory.Ctx{Plugin: gen}
 
@@ -203,6 +215,14 @@ func Generate(gen *protogen.Plugin, lang, packageSuffix string) error {
 		}
 	}
 	return nil
+}
+
+// declareEditionsSupport tells protoc and buf the plugin accepts editions
+// files; without it they refuse to invoke the plugin on any of them.
+func declareEditionsSupport(gen *protogen.Plugin) {
+	gen.SupportedFeatures |= uint64(pluginpb.CodeGeneratorResponse_FEATURE_SUPPORTS_EDITIONS)
+	gen.SupportedEditionsMinimum = supportedEditionsMinimum
+	gen.SupportedEditionsMaximum = supportedEditionsMaximum
 }
 
 // resolveLanguages expands [LangAll] and validates a single language against
