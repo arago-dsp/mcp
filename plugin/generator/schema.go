@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	mcppb "github.com/the-protobuf-project/mcp/protobuf/mcppb"
 	"google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/protobuf/proto"
@@ -29,8 +28,12 @@ func kindToType(kind protoreflect.Kind) string {
 	}
 }
 
-// isFieldRequired checks whether a field has REQUIRED google.api.field_behavior.
+// isFieldRequired reports whether a field is required, either through REQUIRED
+// google.api.field_behavior or through (buf.validate.field).required.
 func isFieldRequired(fd protoreflect.FieldDescriptor) bool {
+	if isValidateRequired(fd) {
+		return true
+	}
 	if !proto.HasExtension(fd.Options(), annotations.E_FieldBehavior) {
 		return false
 	}
@@ -41,57 +44,6 @@ func isFieldRequired(fd protoreflect.FieldDescriptor) bool {
 		}
 	}
 	return false
-}
-
-// extractValidateConstraints reads buf.validate.field rules and returns JSON Schema constraints.
-func extractValidateConstraints(fd protoreflect.FieldDescriptor) map[string]any {
-	constraints := make(map[string]any)
-	if !proto.HasExtension(fd.Options(), validate.E_Field) {
-		return constraints
-	}
-	rules := proto.GetExtension(fd.Options(), validate.E_Field).(*validate.FieldRules)
-	if rules == nil {
-		return constraints
-	}
-
-	if sr := rules.GetString(); sr != nil {
-		if sr.GetUuid() {
-			constraints["format"] = "uuid"
-		}
-		if sr.GetEmail() {
-			constraints["format"] = "email"
-		}
-		if p := sr.GetPattern(); p != "" {
-			constraints["pattern"] = p
-		}
-		if sr.HasMinLen() {
-			constraints["minLength"] = int(sr.GetMinLen())
-		}
-		if sr.HasMaxLen() {
-			constraints["maxLength"] = int(sr.GetMaxLen())
-		}
-	}
-
-	applyIntRange := func(hasGt bool, gt int, hasGte bool, gte int, hasLt bool, lt int, hasLte bool, lte int) {
-		if hasGt {
-			constraints["minimum"] = gt + 1
-		} else if hasGte {
-			constraints["minimum"] = gte
-		}
-		if hasLt {
-			constraints["maximum"] = lt - 1
-		} else if hasLte {
-			constraints["maximum"] = lte
-		}
-	}
-	if r := rules.GetInt32(); r != nil {
-		applyIntRange(r.HasGt(), int(r.GetGt()), r.HasGte(), int(r.GetGte()), r.HasLt(), int(r.GetLt()), r.HasLte(), int(r.GetLte()))
-	}
-	if r := rules.GetInt64(); r != nil {
-		applyIntRange(r.HasGt(), int(r.GetGt()), r.HasGte(), int(r.GetGte()), r.HasLt(), int(r.GetLt()), r.HasLte(), int(r.GetLte()))
-	}
-
-	return constraints
 }
 
 // messageSchema converts a protobuf message descriptor into a JSON Schema map.
@@ -239,7 +191,11 @@ func applyMCPFieldOptions(fd protoreflect.FieldDescriptor, schema map[string]any
 // recursive field can be cut rather than followed.
 func fieldSchemaPath(fd protoreflect.FieldDescriptor, openAI bool, path map[protoreflect.FullName]bool) map[string]any {
 	if fd.IsMap() {
-		return mapSchemaPath(fd, openAI, path)
+		schema := mapSchemaPath(fd, openAI, path)
+		if !openAI {
+			applyContainerRules(fd, schema, false)
+		}
+		return schema
 	}
 	var schema map[string]any
 	switch fd.Kind() {
@@ -250,14 +206,16 @@ func fieldSchemaPath(fd protoreflect.FieldDescriptor, openAI bool, path map[prot
 	default:
 		schema = scalarSchema(fd, openAI)
 	}
-	for k, v := range extractValidateConstraints(fd) {
-		schema[k] = v
+	if !fd.IsList() {
+		applyValidateRules(fd, schema, openAI)
+		applyMCPFieldOptions(fd, schema, "")
+		return schema
 	}
+	applyRules(fd, itemRules(fd), schema, openAI)
 	applyMCPFieldOptions(fd, schema, "")
-	if fd.IsList() {
-		return map[string]any{"type": "array", "items": schema}
-	}
-	return schema
+	array := map[string]any{"type": "array", "items": schema}
+	applyContainerRules(fd, array, openAI)
+	return array
 }
 
 // enumDescriptions holds enum-level and per-value descriptions for schema output.
