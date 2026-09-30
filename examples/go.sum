@@ -1,5 +1,5 @@
-buf.build/gen/go/the-protobuf-project/mcp/protocolbuffers/go v1.36.12-20260622085421-d8286d36a0cc.1 h1:OFNdyLrpEmDok2kHoEjpjh3FmHYv4eLdoQLtKhOombg=
-buf.build/gen/go/the-protobuf-project/mcp/protocolbuffers/go v1.36.12-20260622085421-d8286d36a0cc.1/go.mod h1:kZ9MgyFupt5piI1hdfklJMhjLg2hGfXi15CyD6NlyXI=
+buf.build/gen/go/the-protobuf-project/mcp/protocolbuffers/go v1.36.12-20260622085421-d8286d36a0cc.2 h1:4/qANndUEwvnob4x2eFcsQHgVpo3iLznA426vs9smB0=
+buf.build/gen/go/the-protobuf-project/mcp/protocolbuffers/go v1.36.12-20260622085421-d8286d36a0cc.2/go.mod h1:kZ9MgyFupt5piI1hdfklJMhjLg2hGfXi15CyD6NlyXI=
 github.com/a2aproject/a2a-go/v2 v2.4.0 h1:da0iwA6voxLhXIw1B3GSAdrhs5UIa2v6m+v/Fix5qTw=
 github.com/a2aproject/a2a-go/v2 v2.4.0/go.mod h1:EghJ/rY9OCC6jme1z+otOBf+1YCVVCpMSPZU31t3hKY=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
